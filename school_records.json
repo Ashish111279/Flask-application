@@ -1,0 +1,24 @@
+[
+  {
+    "id": 1,
+    "name": "John Doe",
+    "grade": "10",
+    "section": "A",
+    "marks": {
+      "math": 85,
+      "science": 90,
+      "english": 88
+    }
+  },
+  {
+    "id": 2,
+    "name": "Jane Smith",
+    "grade": "11",
+    "section": "B",
+    "marks": {
+      "math": 92,
+      "science": 89,
+      "english": 94
+    }
+  }
+]

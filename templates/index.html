@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>School Records Manager</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>School Records Manager</h1>
+      <p>View, add, update, and delete student records.</p>
+    </header>
+
+    <section class="form-section">
+      <h2>Add / Update Student</h2>
+      <form id="record-form">
+        <input type="hidden" id="record-id" value="">
+        <div class="field-row">
+          <label for="name">Name</label>
+          <input id="name" name="name" type="text" required>
+        </div>
+        <div class="field-row">
+          <label for="grade">Grade</label>
+          <input id="grade" name="grade" type="text" required>
+        </div>
+        <div class="field-row">
+          <label for="section">Section</label>
+          <input id="section" name="section" type="text" required>
+        </div>
+        <div class="field-row">
+          <label for="math">Math</label>
+          <input id="math" name="math" type="number" required>
+        </div>
+        <div class="field-row">
+          <label for="science">Science</label>
+          <input id="science" name="science" type="number" required>
+        </div>
+        <div class="field-row">
+          <label for="english">English</label>
+          <input id="english" name="english" type="number" required>
+        </div>
+        <div class="button-row">
+          <button type="submit">Save Record</button>
+          <button type="button" id="clear-btn">Clear</button>
+        </div>
+      </form>
+    </section>
+
+    <section>
+      <h2>Student Records</h2>
+      <div id="records-status" class="status"></div>
+      <table id="records-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Grade</th>
+            <th>Section</th>
+            <th>Math</th>
+            <th>Science</th>
+            <th>English</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </div>
+
+  <script>
+    const form = document.getElementById('record-form');
+    const clearBtn = document.getElementById('clear-btn');
+    const recordIdInput = document.getElementById('record-id');
+    const statusEl = document.getElementById('records-status');
+    const tableBody = document.querySelector('#records-table tbody');
+
+    async function fetchRecords() {
+      const res = await fetch('/records');
+      const records = await res.json();
+      renderTable(records);
+    }
+
+    function renderTable(records) {
+      tableBody.innerHTML = records.map(record => `
+        <tr>
+          <td>${record.id}</td>
+          <td>${record.name}</td>
+          <td>${record.grade}</td>
+          <td>${record.section}</td>
+          <td>${record.marks.math || ''}</td>
+          <td>${record.marks.science || ''}</td>
+          <td>${record.marks.english || ''}</td>
+          <td>
+            <button class="action-btn" onclick="editRecord(${record.id})">Edit</button>
+            <button class="action-btn delete" onclick="deleteRecord(${record.id})">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function showStatus(message, type = 'info') {
+      statusEl.textContent = message;
+      statusEl.className = `status ${type}`;
+    }
+
+    async function editRecord(id) {
+      const res = await fetch(`/records/${id}`);
+      if (!res.ok) {
+        showStatus('Could not load record.', 'error');
+        return;
+      }
+      const record = await res.json();
+      recordIdInput.value = record.id;
+      document.getElementById('name').value = record.name;
+      document.getElementById('grade').value = record.grade;
+      document.getElementById('section').value = record.section;
+      document.getElementById('math').value = record.marks.math || '';
+      document.getElementById('science').value = record.marks.science || '';
+      document.getElementById('english').value = record.marks.english || '';
+    }
+
+    async function deleteRecord(id) {
+      const res = await fetch(`/records/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        showStatus('Delete failed.', 'error');
+        return;
+      }
+      showStatus('Record deleted.', 'success');
+      await fetchRecords();
+    }
+
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const recordId = recordIdInput.value;
+      const payload = {
+        name: document.getElementById('name').value,
+        grade: document.getElementById('grade').value,
+        section: document.getElementById('section').value,
+        marks: {
+          math: parseInt(document.getElementById('math').value, 10),
+          science: parseInt(document.getElementById('science').value, 10),
+          english: parseInt(document.getElementById('english').value, 10)
+        }
+      };
+
+      const method = recordId ? 'PUT' : 'POST';
+      const url = recordId ? `/records/${recordId}` : '/records';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        showStatus('Save failed.', 'error');
+        return;
+      }
+
+      const message = recordId ? 'Record updated.' : 'Record created.';
+      showStatus(message, 'success');
+      form.reset();
+      recordIdInput.value = '';
+      await fetchRecords();
+    });
+
+    clearBtn.addEventListener('click', () => {
+      form.reset();
+      recordIdInput.value = '';
+      showStatus('Form cleared.', 'info');
+    });
+
+    fetchRecords();
+  </script>
+</body>
+</html>
